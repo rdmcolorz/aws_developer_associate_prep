@@ -1,5 +1,6 @@
-[Lesson link]("https://youtu.be/RrKRN9zRBWs?t=8234")
-## AWS Elastic Container Service (ECS)
+# AWS Elastic Container Service (ECS)
+
+[Lesson link](https://youtu.be/RrKRN9zRBWs?t=8234)
 Fully-managed container orchestration service. Highly secure, reliable, and scalable way to run containers.\
 
 ## Notes
