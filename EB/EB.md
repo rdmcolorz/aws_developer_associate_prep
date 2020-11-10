@@ -4,7 +4,22 @@
 Quickly deploy and manage web-apps on AWS.\
 Heroku of AWS.
 
-## Notes
+## Table of contents
+
+- [AWS Elastic Beanstalk (EB)](#aws-elastic-beanstalk-eb)
+  - [Table of contents](#table-of-contents)
+    - [Web vs Worker environment](#web-vs-worker-environment)
+    - [Deployment Policies](#deployment-policies)
+    - [In-place vs Blue/ Green deployment](#in-place-vs-blue-green-deployment)
+    - [Deployment Methods in Web](#deployment-methods-in-web)
+    - [Deployment Methods Reference Table](#deployment-methods-reference-table)
+    - [Configuration Files](#configuration-files)
+    - [Linux server configuration](#linux-server-configuration)
+    - [EB CLI](#eb-cli)
+      - [EB commands](#eb-commands)
+    - [Custom Image](#custom-image)
+    - [Configuring RDS](#configuring-rds)
+    - [EB Follow along](#eb-follow-along)
 
 EB is powered by CloudFormation template that setups for you:
 
@@ -16,6 +31,8 @@ EB is powered by CloudFormation template that setups for you:
 - In-place and Blue/Green deployment methodologies
 - Security(Rotates passwords)
 - Can run Dockerized environments
+
+
 
 ### Web vs Worker environment
 
@@ -147,3 +164,28 @@ git clone https://github.com/aws-elastic-beanstalk-cli-setup.git
 ### Custom Image
 
 When you create an EB env, you can specify an Amazon Machine Images (AMI) to use instead of the standard EB AMI.
+
+- Improves provisioning times if you need to install a lot of software that isn't included in the standard AMIs.
+
+### Configuring RDS
+
+A database can be added inside or outside of the EB environment.
+
+- Inside EB ENV
+  - Intended for development envs, if you terminate the env, the db is also terminated.
+- Outside EB ENV
+  - Intended for production envs, since the db is outside the EB env and will remain even if you terminate the EB env.
+![eb_env](eb_env.png)
+
+### EB Follow along
+
+- make region us-east-1
+- [create Cloud9 env](https://youtu.be/RrKRN9zRBWs?t=3546)
+  -  Get security group id:
+     -  `curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/06:74:51:4f:bb:87/security-group-ids`
+  - Get ip: 
+    - `http://checkip.amazonaws.com/`
+  - Open port in security group:
+    - `aws ec2 authorize-security-group-ingress --group-id "security-group-id" --port 8080 --protocol tcp --cidr "ip"/32`
+  - Check if security group has created:
+    - `aws ec2 describe-security-groups --group-ids "security-group-id" --output text --filters Name=ip-permission.to-port,Values=8080`
