@@ -30,9 +30,7 @@ EB is powered by CloudFormation template that setups for you:
 - Monitoring(CloudWatch, SNS)
 - In-place and Blue/Green deployment methodologies
 - Security(Rotates passwords)
-- Can run Dockerized environments
-
-
+- Can run Docker-ized environments
 
 ### Web vs Worker environment
 
@@ -180,12 +178,84 @@ A database can be added inside or outside of the EB environment.
 ### EB Follow along
 
 - make region us-east-1
-- [create Cloud9 env](https://youtu.be/RrKRN9zRBWs?t=3546)
-  -  Get security group id:
-     -  `curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/06:74:51:4f:bb:87/security-group-ids`
-  - Get ip: 
-    - `http://checkip.amazonaws.com/`
-  - Open port in security group:
-    - `aws ec2 authorize-security-group-ingress --group-id "security-group-id" --port 8080 --protocol tcp --cidr "ip"/32`
-  - Check if security group has created:
-    - `aws ec2 describe-security-groups --group-ids "security-group-id" --output text --filters Name=ip-permission.to-port,Values=8080`
+- [Create Cloud9 env](https://youtu.be/RrKRN9zRBWs?t=3546)
+  - Get security group id: `curl -s http://169.254.169.254/latest/meta-data/network/interfaces/macs/06:74:51:4f:bb:87/security-group-ids`
+  - Get ip: `http://checkip.amazonaws.com/`
+  - Open port in security group: `aws ec2 authorize-security-group-ingress --group-id "security-group-id" --port 8080 --protocol tcp --cidr "ip"/32`
+  - Check if security group has created: `aws ec2 describe-security-groups --group-ids "security-group-id" --output text --filters Name=ip-permission.to-port,Values=8080`
+  - Check cloud9 instance ip: `curl -s http://169.254.169.254/latest/meta-data`
+- Create EB env using Nodejs
+  1. [Install EB CLI](https://github.com/aws/aws-elastic-beanstalk-cli-setup) 
+  2. Create app with codeCommit
+  3. `eb init`
+  4. Setup config files in `.ebextensions` directory
+     - env variables config:
+
+      ``` json
+      option_settings:
+      aws:elasticbeanstalk:application:environment:
+          PORT: 8081
+          NODE_ENV: production
+
+      ```
+
+     - node config:
+
+      ``` json
+      option_settings:
+          aws:elasticbeanstalk:container:nodejs:
+              NodeCommand: "npm start"
+              NodeVersion: 10.18.1
+
+      ```
+
+     - Immutable config:
+
+      ``` json
+      option_settings:
+          aws:elasticbeanstalk:command:
+              DeploymentPolicy: Immutable
+              HealthCheckSuccessThreshold: Warning
+              IgnoreHeathCheck: true
+        Timeout: "600"
+      ```
+
+  5. Create EB environment using Nodejs: `eb create --single`
+- Blue/ Green deployment
+  1. Clone current environment: `eb clone`
+  2. Update app code and push changes to repo.
+  3. Deploy updated repo to cloned env: `eb deploy "cloned env name"`
+  4. Swap URL: `eb swap "source" "clone"`
+  5. Delete source env: `eb terminate "source"`
+
+- Create EB environment using Docker
+  1. Add `Dockerfile` and `.dockerignore`
+  2. configure EB to deploy Docker images: `eb platform select`
+  3. Build image from Dockerfile: `docker build --tag "app_name"`
+  4. Confirm image: `docker image`
+  5. Test container locally: `docker run --env PORT=8080 --publish 8080:8080 "app_name"`. This command will run image on port 8080 and container port 8080.
+  6. Create environment: `eb create --single`
+- Single-container with ECR
+  1. Get access to ECR: `aws ecr get-login-password | docker login --username AWS --password-stdin "aws_id".dkr.ecr.us-east-1.amazonaws.com`
+  2. Create repo on ECR
+  3. tag docker image: `docker tag 8f41c2e5c648 "aws_id".dkr.ecr.us-east-1.amazonaws.com/"repo_name"`
+  4. Push image to ECR: `docker push "aws_id".dkr.ecr.us-east-1.amazonaws.com/"repo_name"`
+  5. Add `Dockerrun.aws.json` file
+
+    ``` json
+    {
+      "AWSEBDockerrunVersion": "1",
+      "Image": {
+          "Name": "899349588814.dkr.ecr.us-east-1.amazonaws.com/study-sync"
+      },
+      "Ports": [{
+          "ContainerPort": 8080,
+          "HostPort": 8080
+      }]
+    }
+    ```
+
+  6. Setup `.ebextensions` with `001_envar.config`
+  7. Init EB: `eb init`, push code to codecommit
+  8. Attach policy `AmazonEC2ContainerRegistryReadOnly` to `aws-elasticbeanstalk-ec2-role` so it can access the docker image.
+  9. Create environment: `eb create --single`
